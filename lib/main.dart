@@ -183,7 +183,7 @@ class _SpeakingScreenState extends State<SpeakingScreen> {
               ),
             ]),
             SizedBox(
-              height: 160,
+              height: 240,
               child: FilledButton.icon(
                 onPressed: _loading ? null : _speak,
                 icon: const Icon(Icons.replay, size: 40),
