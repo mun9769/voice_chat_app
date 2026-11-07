@@ -2,6 +2,7 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 
+import 'design.dart';
 import 'sentence_deck.dart';
 import 'tatoeba_client.dart';
 
@@ -14,9 +15,8 @@ class SpeakingApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'English Speaking',
-      theme: ThemeData(colorSchemeSeed: Colors.indigo, useMaterial3: true),
-      darkTheme: ThemeData(
-          colorSchemeSeed: Colors.indigo, brightness: Brightness.dark, useMaterial3: true),
+      debugShowCheckedModeBanner: false,
+      theme: buildTheme(),
       home: const SpeakingScreen(),
     );
   }
@@ -128,18 +128,17 @@ class _SpeakingScreenState extends State<SpeakingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final text = Theme.of(context).textTheme;
     final s = _deck.current;
     return Scaffold(
       appBar: AppBar(title: const Text('English Speaking')),
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
           child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
             DropdownButtonFormField<Map<String, String>>(
               initialValue: _voice,
               isExpanded: true,
-              decoration: const InputDecoration(labelText: '음성 모델', border: OutlineInputBorder()),
+              decoration: const InputDecoration(labelText: '음성 모델'),
               items: [
                 for (final v in _voices)
                   DropdownMenuItem(
@@ -149,57 +148,217 @@ class _SpeakingScreenState extends State<SpeakingScreen> {
               ],
               onChanged: _selectVoice,
             ),
-            Expanded(
-              child: Center(
-                child: _loading
-                    ? const CircularProgressIndicator()
-                    : Column(mainAxisSize: MainAxisSize.min, children: [
-                        Text('${_deck.index + 1}', style: text.labelLarge),
-                        const SizedBox(height: 12),
-                        Text(_showSentence ? s.text : '• • •',
-                            textAlign: TextAlign.center, style: text.headlineMedium),
-                        const SizedBox(height: 16),
-                        Text(_showTranslation ? (s.translation ?? '(번역 없음)') : '• • •',
-                            textAlign: TextAlign.center,
-                            style: text.titleMedium
-                                ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant)),
-                        if (_showSentence && s.credit != null) ...[
-                          const SizedBox(height: 8),
-                          Text(s.credit!, style: text.bodySmall),
-                        ],
-                      ]),
-              ),
-            ),
+            const SizedBox(height: 16),
+            Expanded(child: _sentenceCard(s)),
+            const SizedBox(height: 12),
             Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-              TextButton.icon(
-                onPressed: () => setState(() => _showTranslation = !_showTranslation),
-                icon: Icon(_showTranslation ? Icons.visibility_off : Icons.translate, size: 18),
-                label: Text(_showTranslation ? '번역 가리기' : '번역 보기'),
+              _Chip(
+                icon: _showTranslation ? Icons.visibility_off_outlined : Icons.translate,
+                label: _showTranslation ? '번역 가리기' : '번역 보기',
+                onTap: () => setState(() => _showTranslation = !_showTranslation),
               ),
-              TextButton.icon(
-                onPressed: () => setState(() => _showSentence = !_showSentence),
-                icon: Icon(_showSentence ? Icons.visibility_off : Icons.visibility, size: 18),
-                label: Text(_showSentence ? '문장 가리기' : '문장 보기'),
+              _Chip(
+                icon: _showSentence ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                label: _showSentence ? '문장 가리기' : '문장 보기',
+                onTap: () => setState(() => _showSentence = !_showSentence),
               ),
             ]),
-            SizedBox(
+            const SizedBox(height: 12),
+            _PressButton(
               height: 240,
-              child: FilledButton.icon(
-                onPressed: _loading ? null : _speak,
-                icon: const Icon(Icons.replay, size: 40),
-                label: Text('Replay', style: text.headlineMedium?.copyWith(color: Colors.white)),
-              ),
+              color: Palette.primary,
+              pressedColor: Palette.primaryActive,
+              onTap: _loading ? null : _speak,
+              child: const Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                Icon(Icons.replay_rounded, size: 36, color: Colors.white),
+                SizedBox(width: 12),
+                Text('Replay',
+                    style: TextStyle(
+                        fontSize: 26,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: -0.625,
+                        color: Colors.white)),
+              ]),
             ),
             const SizedBox(height: 12),
-            SizedBox(
-              height: 80,
-              child: FilledButton.tonalIcon(
-                onPressed: _loading ? null : _next,
-                icon: const Icon(Icons.arrow_forward, size: 28),
-                label: Text('Next', style: text.titleLarge),
-              ),
+            _PressButton(
+              height: 72,
+              color: Palette.canvas,
+              pressedColor: Palette.canvasSoft,
+              border: Palette.hairline,
+              onTap: _loading ? null : _next,
+              child: const Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                Text('Next',
+                    style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: -0.125,
+                        color: Palette.ink)),
+                SizedBox(width: 8),
+                Icon(Icons.arrow_forward_rounded, size: 22, color: Palette.ink),
+              ]),
             ),
           ]),
+        ),
+      ),
+    );
+  }
+
+  /// White card holding the counter, sentence and translation.
+  Widget _sentenceCard(Sentence s) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Palette.canvas,
+        borderRadius: BorderRadius.circular(Radii.lg),
+        border: Border.all(color: Palette.hairline),
+      ),
+      child: _loading
+          ? const Center(child: CircularProgressIndicator(color: Palette.primary))
+          : Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text('SENTENCE ${_deck.index + 1}',
+                  style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.125,
+                      color: Palette.primary)),
+              Expanded(
+                child: Center(
+                  child: SingleChildScrollView(
+                    child: Column(children: [
+                      _Hideable(
+                        visible: _showSentence,
+                        text: s.text,
+                        style: const TextStyle(
+                            fontSize: 26,
+                            fontWeight: FontWeight.w700,
+                            height: 1.23,
+                            letterSpacing: -0.625,
+                            color: Palette.ink),
+                      ),
+                      const SizedBox(height: 16),
+                      _Hideable(
+                        visible: _showTranslation,
+                        text: s.translation ?? '(번역 없음)',
+                        style: const TextStyle(fontSize: 16, height: 1.5, color: Palette.inkMuted),
+                      ),
+                    ]),
+                  ),
+                ),
+              ),
+              if (_showSentence && s.credit != null)
+                Text(s.credit!, style: const TextStyle(fontSize: 12, color: Palette.inkFaint)),
+            ]),
+    );
+  }
+}
+
+/// Shows [text], or a soft placeholder bar of similar height while hidden.
+class _Hideable extends StatelessWidget {
+  const _Hideable({required this.visible, required this.text, required this.style});
+
+  final bool visible;
+  final String text;
+  final TextStyle style;
+
+  @override
+  Widget build(BuildContext context) {
+    if (visible) return Text(text, textAlign: TextAlign.center, style: style);
+    return Container(
+      width: 160,
+      height: (style.fontSize ?? 16) * 1.1,
+      decoration: BoxDecoration(
+        color: Palette.canvasSoft,
+        borderRadius: BorderRadius.circular(Radii.xs),
+      ),
+    );
+  }
+}
+
+/// Small utility toggle: white, hairline border, 8px corners.
+class _Chip extends StatelessWidget {
+  const _Chip({required this.icon, required this.label, required this.onTap});
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Palette.canvas,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(Radii.md),
+        side: const BorderSide(color: Palette.hairline),
+      ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(Radii.md),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          child: Row(mainAxisSize: MainAxisSize.min, children: [
+            Icon(icon, size: 16, color: Palette.inkSecondary),
+            const SizedBox(width: 6),
+            Text(label,
+                style: const TextStyle(
+                    fontSize: 14, fontWeight: FontWeight.w500, color: Palette.inkSecondary)),
+          ]),
+        ),
+      ),
+    );
+  }
+}
+
+/// Full-width button with 12px corners, a pressed colour and a slight scale-down on press.
+class _PressButton extends StatefulWidget {
+  const _PressButton({
+    required this.height,
+    required this.color,
+    required this.pressedColor,
+    required this.onTap,
+    required this.child,
+    this.border,
+  });
+
+  final double height;
+  final Color color;
+  final Color pressedColor;
+  final Color? border;
+  final VoidCallback? onTap;
+  final Widget child;
+
+  @override
+  State<_PressButton> createState() => _PressButtonState();
+}
+
+class _PressButtonState extends State<_PressButton> {
+  bool _down = false;
+
+  void _set(bool v) {
+    if (widget.onTap != null) setState(() => _down = v);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTapDown: (_) => _set(true),
+      onTapUp: (_) => _set(false),
+      onTapCancel: () => _set(false),
+      onTap: widget.onTap,
+      child: AnimatedScale(
+        scale: _down ? 0.97 : 1,
+        duration: const Duration(milliseconds: 90),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 90),
+          height: widget.height,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: _down ? widget.pressedColor : widget.color,
+            borderRadius: BorderRadius.circular(Radii.lg),
+            border: widget.border == null ? null : Border.all(color: widget.border!),
+            boxShadow: softShadow,
+          ),
+          child: Opacity(opacity: widget.onTap != null ? 1 : 0.5, child: widget.child),
         ),
       ),
     );
