@@ -41,7 +41,9 @@ class _SpeakingScreenState extends State<SpeakingScreen> {
   /// Recording option first, then English TTS voices on the device.
   List<Map<String, String>> _voices = [_recording];
   Map<String, String> _voice = _recording;
+  // Both start hidden and go back to hidden on every new sentence.
   bool _showSentence = false;
+  bool _showTranslation = false;
   bool _loading = true;
 
   @override
@@ -91,7 +93,11 @@ class _SpeakingScreenState extends State<SpeakingScreen> {
   }
 
   Future<void> _next() async {
-    setState(_deck.next);
+    setState(() {
+      _deck.next();
+      _showSentence = false;
+      _showTranslation = false;
+    });
     _speak();
     // Keep a buffer of fetched sentences so Next never runs dry.
     if (_deck.remaining < 5) {
@@ -152,6 +158,11 @@ class _SpeakingScreenState extends State<SpeakingScreen> {
                         const SizedBox(height: 12),
                         Text(_showSentence ? s.text : '• • •',
                             textAlign: TextAlign.center, style: text.headlineMedium),
+                        const SizedBox(height: 16),
+                        Text(_showTranslation ? (s.translation ?? '(번역 없음)') : '• • •',
+                            textAlign: TextAlign.center,
+                            style: text.titleMedium
+                                ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant)),
                         if (_showSentence && s.credit != null) ...[
                           const SizedBox(height: 8),
                           Text(s.credit!, style: text.bodySmall),
@@ -159,14 +170,18 @@ class _SpeakingScreenState extends State<SpeakingScreen> {
                       ]),
               ),
             ),
-            Align(
-              alignment: Alignment.centerRight,
-              child: TextButton.icon(
+            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+              TextButton.icon(
+                onPressed: () => setState(() => _showTranslation = !_showTranslation),
+                icon: Icon(_showTranslation ? Icons.visibility_off : Icons.translate, size: 18),
+                label: Text(_showTranslation ? '번역 가리기' : '번역 보기'),
+              ),
+              TextButton.icon(
                 onPressed: () => setState(() => _showSentence = !_showSentence),
                 icon: Icon(_showSentence ? Icons.visibility_off : Icons.visibility, size: 18),
                 label: Text(_showSentence ? '문장 가리기' : '문장 보기'),
               ),
-            ),
+            ]),
             SizedBox(
               height: 160,
               child: FilledButton.icon(

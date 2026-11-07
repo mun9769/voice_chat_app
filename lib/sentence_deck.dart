@@ -1,8 +1,11 @@
 /// One English sentence, optionally with a recorded mp3.
 class Sentence {
-  const Sentence(this.text, {this.audioUrl, this.credit});
+  const Sentence(this.text, {this.translation, this.audioUrl, this.credit});
 
   final String text;
+
+  /// Korean translation, if known.
+  final String? translation;
   final String? audioUrl;
 
   /// Who wrote/recorded it, shown for CC BY attribution.
@@ -18,11 +21,13 @@ class SentenceDeck {
 
   /// Offline fallback when Tatoeba can't be reached.
   static const defaultSentences = [
-    Sentence('Hi, how are you doing today?'),
-    Sentence('Could you tell me how to get to the subway station?'),
-    Sentence("I'd like a cup of coffee, please."),
-    Sentence('What do you do for a living?'),
-    Sentence('Sorry, could you say that again more slowly?'),
+    Sentence('Hi, how are you doing today?', translation: '안녕하세요, 오늘 어떻게 지내세요?'),
+    Sentence('Could you tell me how to get to the subway station?',
+        translation: '지하철역에 어떻게 가는지 알려 주시겠어요?'),
+    Sentence("I'd like a cup of coffee, please.", translation: '커피 한 잔 주세요.'),
+    Sentence('What do you do for a living?', translation: '무슨 일을 하세요?'),
+    Sentence('Sorry, could you say that again more slowly?',
+        translation: '죄송한데, 좀 더 천천히 다시 말씀해 주시겠어요?'),
   ];
 
   final List<Sentence> sentences;

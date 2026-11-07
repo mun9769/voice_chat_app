@@ -18,7 +18,9 @@ class TatoebaClient {
       'has_audio': 'yes',
       'sort': 'random',
       'limit': '$limit',
-      'showtrans': 'none',
+      // Only sentences with a Korean translation, and return just that translation.
+      'trans:lang': 'kor',
+      'showtrans': 'matching',
     });
     final res = await http.get(uri).timeout(const Duration(seconds: 10));
     if (res.statusCode != 200) throw Exception('Tatoeba error ${res.statusCode}');
@@ -40,6 +42,14 @@ class TatoebaClient {
     return text.trim().endsWith('?') || _dialogue.hasMatch(text);
   }
 
+  static String? _korean(dynamic translations) {
+    if (translations is! List) return null;
+    for (final t in translations) {
+      if (t is Map && t['lang'] == 'kor') return '${t['text']}';
+    }
+    return null;
+  }
+
   /// Parses an API response, keeping only conversational sentences.
   static List<Sentence> parse(String body, {int maxWords = 12}) {
     final data = (jsonDecode(body)['data'] as List?) ?? [];
@@ -47,6 +57,7 @@ class TatoebaClient {
       for (final s in data)
         if (isConversational('${s['text']}', maxWords: maxWords))
           Sentence('${s['text']}',
+              translation: _korean(s['translations']),
               audioUrl: audioUrl(s['id'] as int), credit: 'Tatoeba #${s['id']} · ${s['owner']}'),
     ];
   }

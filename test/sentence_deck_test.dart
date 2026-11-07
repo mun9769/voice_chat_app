@@ -32,7 +32,8 @@ void main() {
 
   test('parses Tatoeba response into sentences with mp3 urls', () {
     const body = '{"data":['
-        '{"id":3222952,"text":"You have to sit down.","owner":"CK"},'
+        '{"id":3222952,"text":"You have to sit down.","owner":"CK",'
+        '"translations":[{"lang":"kor","text":"앉으셔야 해요."}]},'
         '{"id":1,"text":"one two three four five six seven eight nine ten eleven twelve thirteen","owner":"x"}'
         ']}';
     final list = TatoebaClient.parse(body);
@@ -40,6 +41,7 @@ void main() {
     expect(list.first.text, 'You have to sit down.');
     expect(list.first.audioUrl, 'https://audio.tatoeba.org/sentences/eng/3222952.mp3');
     expect(list.first.credit, contains('CK'));
+    expect(list.first.translation, '앉으셔야 해요.');
   });
 
   test('keeps conversational sentences, drops narration', () {
